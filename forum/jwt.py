@@ -1,8 +1,10 @@
 from functools import wraps
 import jwt
-from flask import request, abort
+from flask import request, abort, jsonify
 from flask import app
-from forum.models
+from forum import db
+from forum.models import User
+
 
 def token_required(f):
     @wraps(f)

@@ -13,4 +13,9 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
 
+    from forum.routes import users_blueprint, blog_blueprint
+
+    app.register_blueprint(users_blueprint)
+    app.register_blueprint(blog_blueprint)
+    
     return app
