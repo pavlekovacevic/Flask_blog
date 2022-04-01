@@ -1,0 +1,24 @@
+version: "3"
+
+services:  
+  postgres:
+    container_name: forum_postgres
+    image: postgres:latest
+    ports: 
+     - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: password
+    volumes:  
+     - db_data:/var/lib/postgresql/data
+  
+  forum_app:
+    build: .
+    container_name: forum-app
+    ports:
+     - 5000:5000
+    environment:
+      - SECRET_KEY=badji-secret
+    
+volumes:
+  db_data:
+
