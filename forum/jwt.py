@@ -21,7 +21,7 @@ def token_required(f):
             # decoding the payload to fetch the stored details
             data = jwt.decode(token, app.config['SECRET_KEY'])
             current_user = User.query\
-                .filter_by(public_id = data['public_id'])\
+                .filter_by(id = data['user_id'])\
                 .first()
         except:
             return jsonify({

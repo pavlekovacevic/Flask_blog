@@ -1,6 +1,7 @@
+from bcrypt import hashpw, gensalt
 import bcrypt
+from bdb import set_trace
 import jwt
-
 from flask import  jsonify, make_response, request, Blueprint
 from marshmallow import ValidationError
 from flask import request, Blueprint
@@ -9,7 +10,7 @@ from forum.jwt import token_required
 from forum.models import User, Post, Comment
 from forum import db
 from flask_bcrypt import Bcrypt
-from forum.schemas import CreatePostInputSchema, CreateUserInputSchema, CreateLoginInputSchema
+from forum.schemas import CreateCommentInputSchema, CreatePostInputSchema, CreateUserInputSchema, CreateLoginInputSchema
 from forum.config import ForumConfig as config
 
 
@@ -26,8 +27,12 @@ def signup():
     except ValidationError as err:
         return err.messages, 400
     
+    user = User.query.filter_by(email = user_signup_data['email']).first()
+    import pdb;pdb.set_trace()
+    if user == user_signup_data:
+        return 'This user already exists', 500
     new_user = User(**user_signup_data)
-    # TODO: ako se unese dva puta baza puca, pogledaj kako pokriti taj case
+   
     db.session.add(new_user)
     db.session.commit()
 
@@ -40,12 +45,15 @@ def login():
         user_login_data = CreateLoginInputSchema().load(request.get_json())
     except ValidationError as err:
         return err.messages, 400
-    
-    user = User.query.filter_by(email = user_login_data['email']).first()
-    
-    if Bcrypt.check_password_hash(user.password, user_login_data['password']):
+
+    user = User.query.filter_by(username = user_login_data['username']).first()
+    if not user:
+        return 'User not found', 404
+    hashed = hashpw(user_login_data['password'].encode(), gensalt())
+    import pdb;pdb.set_trace()
+    if user.password == hashed:
         token = jwt.encode({
-            'user_id': User.user_id,
+            'user_id': user.id,
             'exp': datetime.utcnow()+timedelta(minutes=45)
         }), config.SECRET_KEY
 
@@ -64,6 +72,7 @@ def create_post():
     except ValidationError as err:
         return err.messages, 400
 
+    # token_required vraca ulogovani user, sad samo proveriti kako da pristupas toj promenljivoj
     new_post = Post(title=post_data['title'], content = post_data['content'])
 
     db.session.add(new_post)
@@ -118,12 +127,22 @@ def delete_post_by_id(id):
 
     return jsonify("Deleted"), 200
 
-@blog_blueprint.route('/post/<id>/comment', methods=['POST'])
+@blog_blueprint.route('/post/<post_id>/comment/<comment_id>', methods=['GET'])
 @token_required
-def add_comment_to_post_by_id(id):
+def add_comment_to_post_by_id(post_id, comment_id):
+    """"patch comment by seraching its id and post id"""
+
+@blog_blueprint.route('/comment', methods=['GET'])
+def get_all_comments():
     try:
-        comm_data = CreatePostInputSchema().load(request.get_json())
+        comment_data = CreateCommentInputSchema().load(request.get_json)
     except ValidationError as err:
         return err.messages, 400
 
-    #prvo autorizacija ovo ovako nece ici 
+    new_comment = Comment(content=comment_data['content'])
+
+    db.session.add(new_comment)
+    db.session.commit()
+
+    comm_id = getattr(new_comment, 'id')
+    return jsonify({'id':comm_id})

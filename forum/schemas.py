@@ -1,3 +1,4 @@
+from enum import unique
 from marshmallow import fields, Schema, post_load
 from marshmallow.validate import Length
 from bcrypt import hashpw, gensalt
@@ -9,9 +10,9 @@ class CreatePostInputSchema(Schema):
 
 
 class CreateUserInputSchema(Schema):
-    username = fields.Str(required=True, validate=Length(max=20))
+    username = fields.Str(required=True, validate=Length(max=20), unique=True)
     password = fields.Str(required=True) #???
-    email = fields.Str(required=True, validate=Length(max=20))
+    email = fields.Str(required=True, validate=Length(max=20), unique=True)
 
     @post_load
     def hash_password(self, in_data, **kwargs):
