@@ -1,13 +1,11 @@
 from forum import db 
 from datetime import datetime
-from sqlalchemy import ForeignKey, Column, Integer, String
-
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(20), unique=True, nullable=False)
     username = db.Column(db.String(20), unique=True, nullable=False)
-    password = db.Column(db.String(256), unique=True, nullable=False)
+    password = db.Column(db.String(255), unique=True, nullable=False)
     posts = db.relationship('Post', backref='poster')
 
 class Post(db.Model):

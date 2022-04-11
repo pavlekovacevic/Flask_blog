@@ -1,22 +1,14 @@
-from bcrypt import hashpw, gensalt
 import bcrypt
-from bdb import set_trace
 import jwt
 from flask import  jsonify, make_response, request, Blueprint
 from marshmallow import ValidationError
 from flask import request, Blueprint
 from datetime import datetime, timedelta
-from forum.jwt import token_required
 from forum.models import User, Post, Comment
 from forum import db
-from flask_bcrypt import Bcrypt
 from forum.schemas import CreateCommentInputSchema, CreatePostInputSchema, CreateUserInputSchema, CreateLoginInputSchema
 from forum.config import ForumConfig as config
-
-
-
-#ubaciti autorizaciju, resiti 404 problem, dodati rutu za komentare("/post/<id>/comment"), i todo u signup ruti
-
+from forum.jwt import token_required
 users_blueprint = Blueprint('users', __name__, url_prefix='/users')
 blog_blueprint = Blueprint('blog', __name__, url_prefix='/blog')
 
@@ -26,19 +18,14 @@ def signup():
         user_signup_data = CreateUserInputSchema().load(request.get_json())
     except ValidationError as err:
         return err.messages, 400
-    
-    user = User.query.filter_by(email = user_signup_data['email']).first()
-    import pdb;pdb.set_trace()
-    if user == user_signup_data:
-        return 'This user already exists', 500
+
     new_user = User(**user_signup_data)
-   
     db.session.add(new_user)
     db.session.commit()
 
     return jsonify({'message':'Singed up successfully'}), 201
-
-
+    
+    
 @users_blueprint.route('/login', methods=['POST'])
 def login():
     try:
@@ -46,24 +33,22 @@ def login():
     except ValidationError as err:
         return err.messages, 400
 
-    user = User.query.filter_by(username = user_login_data['username']).first()
+    user = User.query.filter_by(username=user_login_data['username']).first()
     if not user:
         return 'User not found', 404
-    hashed = hashpw(user_login_data['password'].encode(), gensalt())
-    import pdb;pdb.set_trace()
-    if user.password == hashed:
+    
+    if bcrypt.checkpw(user_login_data['password'].encode(), user.password.encode()):
         token = jwt.encode({
             'user_id': user.id,
-            'exp': datetime.utcnow()+timedelta(minutes=45)
-        }), config.SECRET_KEY
+            'exp': datetime.utcnow() + timedelta(minutes=45)
+        }, config.SECRET_KEY)
 
         return make_response(jsonify({'token': token.decode('UTF-8')}), 201)
     
     return make_response(
         'Could not verify', 403
     )
-    
-    
+
 @blog_blueprint.route('/post', methods=['POST'])
 @token_required
 def create_post():
@@ -146,3 +131,6 @@ def get_all_comments():
 
     comm_id = getattr(new_comment, 'id')
     return jsonify({'id':comm_id})
+
+
+

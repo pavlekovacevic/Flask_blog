@@ -4,7 +4,7 @@ from flask import request, abort, jsonify
 from flask import app
 from forum import db
 from forum.models import User
-
+from forum.config import ForumConfig as config
 
 def token_required(f):
     @wraps(f)
@@ -19,10 +19,8 @@ def token_required(f):
   
         try:
             # decoding the payload to fetch the stored details
-            data = jwt.decode(token, app.config['SECRET_KEY'])
-            current_user = User.query\
-                .filter_by(id = data['user_id'])\
-                .first()
+            data = jwt.decode(token, config.SECRET_KEY)
+            current_user = User.query.filter_by(id = data['user_id'])
         except:
             return jsonify({
                 'message' : 'Token is invalid !!'
