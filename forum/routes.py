@@ -40,10 +40,11 @@ def login():
     if bcrypt.checkpw(user_login_data['password'].encode(), user.password.encode()):
         token = jwt.encode({
             'user_id': user.id,
-            'exp': datetime.utcnow() + timedelta(minutes=45)
-        }, config.SECRET_KEY)
-
-        return make_response(jsonify({'token': token.decode('UTF-8')}), 201)
+            'exp': datetime.utcnow() + timedelta(minutes=200)
+        }, config.SECRET_KEY
+        )
+        import pdb;pdb.set_trace()
+        return jsonify({'token': token.decode()}), 201
     
     return make_response(
         'Could not verify', 403
