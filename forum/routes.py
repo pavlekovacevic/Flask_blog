@@ -19,12 +19,17 @@ def signup():
         user_signup_data = CreateUserInputSchema().load(request.get_json())
     except ValidationError as err:
         return err.messages, 400
+    """Popravljena cela ruta sada ruta validatuje da li user zapravo postoji u db, ako postoji message i error ako ne create"""
+    user=User.query.filter_by(username=user_signup_data['username']).first()
+    
+    if not user:
+        new_user = User(**user_signup_data)
+        db.session.add(new_user)
+        db.session.commit()
 
-    new_user = User(**user_signup_data)
-    db.session.add(new_user)
-    db.session.commit()
-
-    return jsonify({'message':'Singed up successfully'}), 201
+        return jsonify({'message':'Singed up successfully'}), 201    
+    
+    return ({'message':"User already exists"}), 404
     
     
 @users_blueprint.route('/login', methods=['POST'])
@@ -44,7 +49,7 @@ def login():
             'exp': datetime.utcnow() + timedelta(minutes=200)
         }, config.SECRET_KEY
         )
-        import pdb;pdb.set_trace()
+        
         return jsonify({'token': token.decode()}), 201
     
     return make_response(

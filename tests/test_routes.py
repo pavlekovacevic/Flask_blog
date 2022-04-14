@@ -1,6 +1,5 @@
 import pytest
 from forum import create_app
-from forum.jwt import token_required
 
 @pytest.fixture()
 def app():
@@ -19,18 +18,28 @@ def client(app):
 def runner(app):
     return app.test_cli_runner()
 
-
 def test_user_signup(client):
 
     response = client.post("/users/signup", json={
-       "username":"Testuser",
-       "password":"12345",
-       "email":"testuser@testuser" 
+       "username":"NewUser",
+       "password":"9712",
+       "email":"newuser@newuser" 
     })
     
+    assert response.data
     assert response.status_code == 201
 
-def test_user_signup(client):
+def test_user_already_in_db(client):
+    response = client.post("/users/signup", json={
+        "username":"Testuser",
+        "password":"12345",
+        "email":"testuser@testuser"
+    })
+
+    assert response.data
+    assert response.status_code == 404
+
+def test_user_signup_wrong_data(client):
 
     response = client.post("/users/signup", json={
        "username":"Testuser",
@@ -38,6 +47,7 @@ def test_user_signup(client):
        "email":12345
     })
     
+    assert response.data
     assert response.status_code == 400
 
 def test_user_login(client):
@@ -46,12 +56,23 @@ def test_user_login(client):
        "password":"12345"
     })
     
+    assert response.data
     assert response.status_code == 201
 
-def test_user_login(client):
+def test_user_login_not_exist(client):
     response = client.post("/users/login", json={
        "username":"notexistingsuername",
        "password":"badpassword"
     })
     
+    assert response.data
+    assert response.status_code == 404
+
+def test_user_login_wrong_data(client):
+    response=client.post("/users/login", json={
+        "username":"Randomusername",
+        "password":9222
+    })
+    
+    assert response.data
     assert response.status_code == 400
