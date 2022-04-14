@@ -1,3 +1,4 @@
+from unittest.case import _AssertRaisesContext
 import pytest
 from forum import create_app
 
@@ -19,14 +20,13 @@ def runner(app):
     return app.test_cli_runner()
 
 def test_user_signup(client):
-
     response = client.post("/users/signup", json={
-       "username":"NewUser",
-       "password":"9712",
-       "email":"newuser@newuser" 
+       "username":"User1234",
+       "password":"90901234",
+       "email":"gmail@gmail1234.com" 
     })
     
-    assert response.data
+    assert response.data==(b'{"message":"Signed up successfully!"}\n')
     assert response.status_code == 201
 
 def test_user_already_in_db(client):
@@ -36,18 +36,17 @@ def test_user_already_in_db(client):
         "email":"testuser@testuser"
     })
 
-    assert response.data
+    assert response.data == (b'{"message":"User already exists"}\n')
     assert response.status_code == 404
 
 def test_user_signup_wrong_data(client):
-
     response = client.post("/users/signup", json={
        "username":"Testuser",
        "password":"12345",
        "email":12345
     })
     
-    assert response.data
+    assert response.data == (b'{"email":["Not a valid string."]}\n')
     assert response.status_code == 400
 
 def test_user_login(client):
@@ -56,7 +55,6 @@ def test_user_login(client):
        "password":"12345"
     })
     
-    assert response.data
     assert response.status_code == 201
 
 def test_user_login_not_exist(client):
@@ -65,7 +63,7 @@ def test_user_login_not_exist(client):
        "password":"badpassword"
     })
     
-    assert response.data
+    assert response.data == (b'User not found')
     assert response.status_code == 404
 
 def test_user_login_wrong_data(client):
@@ -74,5 +72,5 @@ def test_user_login_wrong_data(client):
         "password":9222
     })
     
-    assert response.data
+    assert response.data == (b'{"password":["Not a valid string."]}\n')
     assert response.status_code == 400

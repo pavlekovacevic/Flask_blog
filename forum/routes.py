@@ -27,7 +27,7 @@ def signup():
         db.session.add(new_user)
         db.session.commit()
 
-        return jsonify({'message':'Singed up successfully'}), 201    
+        return jsonify({'message':'Signed up successfully!'}), 201    
     
     return ({'message':"User already exists"}), 404
     
@@ -72,8 +72,3 @@ def create_post(self):
 
     post_id = getattr(new_post, 'id')
     return jsonify({'id':post_id}), 201
-
-
-
-
-
