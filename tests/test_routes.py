@@ -1,4 +1,3 @@
-from unittest.case import _AssertRaisesContext
 import pytest
 from forum import create_app
 
@@ -21,12 +20,12 @@ def runner(app):
 
 def test_user_signup(client):
     response = client.post("/users/signup", json={
-       "username":"User1234",
-       "password":"90901234",
-       "email":"gmail@gmail1234.com" 
+       "username":"User12334",
+       "password":"909012334",
+       "email":"gmail@gmail12334.com" 
     })
     
-    assert response.data==(b'{"message":"Signed up successfully!"}\n')
+    assert response.data == (b'{"message":"Signed up successfully!"}\n') # whereas json. dumps() simply returns a string of JSON data???
     assert response.status_code == 201
 
 def test_user_already_in_db(client):
