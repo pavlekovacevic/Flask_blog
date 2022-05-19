@@ -10,6 +10,8 @@ from forum import db
 from forum.schemas import CreateCommentInputSchema, CreatePostInputSchema, CreateUserInputSchema, CreateLoginInputSchema, CreatePostOutputSchema, CreateCommentOutputSchema
 from forum.config import ForumConfig as config
 from forum.jwt import token_required
+from sqlalchemy import desc
+from forum.utils import generate_token
 
 users_blueprint = Blueprint('users', __name__, url_prefix='/users')
 blog_blueprint = Blueprint('blog', __name__, url_prefix='/blog') 
@@ -20,17 +22,16 @@ def signup():
         user_signup_data = CreateUserInputSchema().load(request.get_json())
     except ValidationError as err:
         return err.messages, 400
-    #Popravljena cela ruta sada ruta validatuje da li user zapravo postoji u db, ako postoji message i error ako ne create
+        
     user=User.query.filter_by(username=user_signup_data['username']).first()
     
     if not user:
         new_user = User(**user_signup_data)
         db.session.add(new_user)
         db.session.commit()
-        import pdb;pdb.set_trace()
         return jsonify({'message':'Signed up successfully!'}), 201    
     
-    return ({'message':"User already exists"}), 404
+    return ({'message':"User already exists"}), 400
     
 @users_blueprint.route('/login', methods=['POST'])
 def login():
@@ -44,13 +45,9 @@ def login():
         return 'User not found', 404
     
     if bcrypt.checkpw(user_login_data['password'].encode(), user.password.encode()):
-        token = jwt.encode({
-            'user_id': user.id,
-            'exp': datetime.utcnow() + timedelta(minutes=200)
-        }, config.SECRET_KEY
-        )
+        token = generate_token(user_id=user.id)
         
-        return jsonify({'token': token.decode()}), 201
+        return jsonify({'token': token.decode()}), 200
     
     return make_response(
         'Could not verify', 403
@@ -64,35 +61,30 @@ def create_post(user):
     except ValidationError as err:
         return err.messages, 400
 
-    # token_required vraca ulogovanog usera, sad samo proveriti kako se pristupa toj promenljivoj
-    new_post = Post(title=post_data['title'], content = post_data['content'], poster_id=user.id)
+    new_post = Post(poster_id=user.id, **post_data)
     
     db.session.add(new_post)
     db.session.commit()
 
-    post_id = getattr(new_post, 'id')
-    return jsonify({'id':post_id}), 201
+    return jsonify({'id': new_post.id}), 201
 
 @blog_blueprint.route('/post', methods=['GET'])
 @token_required
 def get_all_posts(user):
     posts = Post.query.all()
-    schemas = CreatePostOutputSchema(many=True)
-    result = schemas.dump(posts)
+    results = CreatePostOutputSchema(many=True).dump(posts)
    
-    return jsonify(result)
+    return jsonify(results)
 
 @blog_blueprint.route('/post/<id>', methods=['GET'])
 @token_required
 def get_single_post_by_id(user, id):
     post = Post.query.filter_by(id=id).first()
-    schemas = CreatePostOutputSchema()
-    result = schemas.dump(post)
+    results = CreatePostOutputSchema().dump(post)
    
-    return jsonify(result)
+    return jsonify(results)
 
-
-@blog_blueprint.route('/post/<id>', methods = ['PUT'])
+@blog_blueprint.route('/post/<id>', methods=['PUT'])
 @token_required
 def update_post(user, id):
     try:
@@ -100,25 +92,28 @@ def update_post(user, id):
     except ValidationError as err:
         return err.messages, 400
     
-    post = Post.query.filter_by(id=id).first()
-
+    post = Post.query.filter_by(id=id, poster_id=user.id).first()
+    if not post:
+        return {"message": "U are not allowed to update this post!"}, 403
+   
     post.title = post_data['title']
     post.content = post_data['content']
-    
-    schema = CreatePostOutputSchema()
-    updated_post = schema.dump(post)
-
     db.session.commit()
+    updated_post = CreatePostOutputSchema().dump(post)
+    
     return jsonify(updated_post)
 
 @blog_blueprint.route('/post/<id>', methods=['DELETE'])
 @token_required
 def delete_post_by_id(user, id):
-    post = Post.query.filter_by(id=id).first()
+    post = Post.query.filter_by(id=id, poster_id=user.id).first()
+    if not post:
+        return {"message":"U are not allowed to delete this post!"}, 403
+    
     db.session.delete(post)
     db.session.commit()
 
-    return jsonify("Deleted"), 200
+    return jsonify("Post deleted"), 200
 
 @blog_blueprint.route('/post/<post_id>/comment', methods=['POST'])
 @token_required
@@ -129,24 +124,21 @@ def add_comment_to_post_by_id(user, post_id):
         return err.messages, 400
     
     post = Post.query.filter_by(id=post_id).first()
-    # return 404 if post doesnt exist
+   
+    if not post:
+        return {"message":"Post does not exist"}, 403
 
-    new_comment = Comment(content = comment_data['content'], poster_id=user.id, post_id=post.id)
-    
+    new_comment = Comment(content=comment_data['content'], poster_id=user.id, post_id=post.id)
     db.session.add(new_comment)
     db.session.commit()
-    
-    
-    schema = CreateCommentOutputSchema()
-    result = schema.dump(new_comment)
+    result = CreateCommentOutputSchema().dump(new_comment)
 
     return jsonify(result), 201
 
 @blog_blueprint.route('/post/<post_id>/comment', methods=['GET'])
 @token_required
 def get_all_comments(user, post_id):
-    comments = Comment.query.filter_by(post_id=post_id).all()
-
+    comments = Comment.query.order_by(desc(Post.pub_date),post_id=post_id).all()
     schema = CreateCommentOutputSchema(many=True)
     result = schema.dump(comments)
 

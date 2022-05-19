@@ -5,3 +5,4 @@ psycopg2-binary==2.9.3
 py-bcrypt==0.4
 flask-marshmallow==0.14.0
 Flask-JWT==0.3.2
+pytest==7.1.2

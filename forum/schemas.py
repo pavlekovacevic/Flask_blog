@@ -9,10 +9,10 @@ class CreatePostInputSchema(Schema):
     content = fields.Str(required=True, validate=Length(max=200))
 
 class CreatePostOutputSchema(Schema):
-    class Meta:
-        fields = ('title', 'content')
-    # title = fields.Str(required=True, validate=Length(max=20))
-    # content = fields.Str(required=True, validate=Length(max=200))
+    # class Meta:
+    #     fields = ('title', 'content')
+    title = fields.Str(required=True, validate=Length(max=20))
+    content = fields.Str(required=True, validate=Length(max=200))
 
 
 
@@ -31,8 +31,9 @@ class CreateCommentInputSchema(Schema):
     content = fields.Str(required=True, validate=Length(max=200))
 
 class CreateCommentOutputSchema(Schema):
-    class Meta:
-        fields = ('content',)# ubacen "," da bi prepoznao kao tuple a ne string
+    content = fields.Str(required=True, validate=Length(max=200))
+    # class Meta:
+    #     fields = ('content',)# ubacen "," da bi prepoznao kao tuple a ne string
 
 class CreateLoginInputSchema(Schema):
     username = fields.Str(required=True, validate=Length(max=20))

@@ -4,8 +4,8 @@ from flask import request, jsonify
 from forum.models import User
 from forum.config import ForumConfig as config
 
-def token_required(f):
-   @wraps(f)
+def token_required(api_function):
+   @wraps(api_function)
    def decorated(*args, **kwargs):
         
         token = request.headers.get("Authorization")
@@ -15,8 +15,7 @@ def token_required(f):
             
         try:
             if token.startswith('Bearer '):
-                get_token = request.headers.get("Authorization")
-                pure_token = get_token[len('Bearer '):]
+                pure_token = token[len('Bearer '):]
                 decoded_token = jwt.decode(jwt=pure_token, key=config.SECRET_KEY)
                 current_user = User.query.filter_by(id=decoded_token['user_id']).first()
         
@@ -26,6 +25,6 @@ def token_required(f):
                 'message' : 'Token is invalid !!'
             }), 401
         
-        return  f(current_user, *args, **kwargs)
+        return api_function(current_user, *args, **kwargs)
   
    return decorated
